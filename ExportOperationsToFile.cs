@@ -1,0 +1,1 @@
+Error CS0120. Its required an object reference for the method or property non static. 'NinjaTrader.Cbi.Account.Positions.get'

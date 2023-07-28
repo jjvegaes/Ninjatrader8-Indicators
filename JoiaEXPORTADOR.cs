@@ -23,29 +23,28 @@ using SharpDX.DirectWrite;
 using NinjaTrader.Core;
 using System.IO;  // for streamwriter
 #endregion
-
 //This namespace holds Indicators in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Indicators
 {
-	// Version 1.0
-	// 12-6-2021 Release Date.
+	// Versión 1.0
+	// 01-05-2022 Fecha de lanzamiento.
 	//
-	// Notes:  The purrpose of the indicator is to write all bar and indicator data to a Comma Seperated Variable file (CSV) that can be easily imported to Excel for your analysis purposes.  If an indicator
-	// has plots that are rendered, such as Order Flow Volume profile, they will not be included.  If an indicator has hidden plots (transparent) they will be included.  The "Columns" will be in the order
-	// that the indicators are listed in the indicator UI.  In a multiple plot indicator, the plots will be listed in the order as they are shown in the indicators properties.   This indicator will read the
-	// data from the beginning of the data series to the last historical bar shown and will draw a vertical reference line on the price chart to illustrate where the last data was written.
-	// 
-	// Operational use:  Apply to chart,** YOU MUST WAIT ** until all indicators have finished calculating/reloading, When all hve finished calculating, Click button, data writes, when Done button shows "Done", The chart will have text advising what data has been written and
-	// where it has been written and advises removing from chart.  Removing will close the file OR clicking the "Done" button will close the file (and removes the button) but the indicator will remain on chart.  If you
-	// leave the indicator on the chart and ylou refresh indicators or add furtrher indicators, ChartToCSV will present the write data button again	
-	// click Done to close CSV file and/OR remove from chart
-	// to also close the CSV file.
-	// 
-	// The indicator will create a new file each time it is run.  The file name will include the primary instrument and the day of the week and the time of the day, as a reference point.
+	// Notas: El propósito del indicador es escribir todos los datos de barras e indicadores en un archivo (CSV) que se puede importar fácilmente a Excel para fines de análisis. Si un indicador
+	// tiene plots que se pintan mediante render, como el perfil de volumen, no se incluirán. Si un indicador tiene gráficos ocultos (transparentes) se incluirán. Las "Columnas" estarán en el orden
+	// que los indicadores se enumeran en la interfaz de los indicadores. En un indicador de múltiples plots, los plots se enumerarán en el orden en que se muestran en las propiedades de los indicadores. Este indicador leerá el
+	// datos desde el comienzo de la serie de datos hasta la última barra histórica mostrada y dibujará una línea de referencia vertical en el gráfico de precios para ilustrar dónde se escribieron los últimos datos.
+	//
+	// Uso operativo: añadir el indicador al gráfico, ** HAY QUE ESPERAR ** hasta que todos los indicadores hayan terminado de calcular/recargar, cuando todos hayan terminado de cargar, haz click en el botón de exportar, cuando el botón muestre "Done", en el gráfico aparecerá un texto avisando de qué datos se han escrito y
+	// donde se han escrito, en este punto se aconseja eliminarlo del gráfico. Eliminar cerrará el archivo O hacer clic en el botón "Listo" cerrará el archivo (y eliminará el botón) pero el indicador permanecerá en el gráfico. Si usted
+	// deje el indicador en el gráfico y actualice los indicadores o agregue más indicadores, JoiaEXPORTADOR presentará el botón de escribir datos nuevamente
+	// haga clic en Listo para cerrar el archivo CSV y/O eliminarlo del gráfico
+	// para cerrar también el archivo CSV.
+	//
+	// El indicador creará un nuevo archivo cada vez que se ejecute. El nombre del archivo incluirá el instrumento principal y el día de la semana y la hora del día, como punto de referencia.
 	//
 	//
 	
-	public class ChartToCSV : Indicator
+	public class JoiaEXPORTADOR : Indicator
 	{				
 		private List <string> Labels;
 		private List <double> Data;		
@@ -62,8 +61,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (State == State.SetDefaults)
 			{
-				Description									= @"Will cycle through indicators on panel and add their plot names on right side of chart";
-				Name										= "ChartToCSV";
+				Description									= @"Exporta todo el historico cargado en el grafico, asi como tambien todos los indicadores";
+				Name										= "JoiaEXPORTADOR";
 				Calculate									= Calculate.OnEachTick;
 				IsOverlay									= true;
 				DisplayInDataBox							= true;
@@ -83,7 +82,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					myGrid = new System.Windows.Controls.Grid
 					{
-						Name = "MyCustomGrid", HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top
+						Name = "CuadriculaGrafico", HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom
 					};
 					
 					System.Windows.Controls.ColumnDefinition column1 = new System.Windows.Controls.ColumnDefinition();
@@ -92,7 +91,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					
 					longButton = new System.Windows.Controls.Button
 					{
-						Name = "WriteData", Content = "WriteData", Foreground = Brushes.White, Background = Brushes.Green
+						Name = "Exportar", Content = "Exportar", Foreground = Brushes.White, Background = Brushes.Green
 					};
 		
 					longButton.Click += OnButtonClick;
@@ -115,7 +114,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Labels.Add("Close;");
 				Labels.Add("Volume;");
 				
-				path 	= NinjaTrader.Core.Globals.UserDataDir+Instrument.MasterInstrument.Name+" "+DateTime.Now.DayOfWeek+" "+DateTime.Now.Hour+DateTime.Now.Minute+ ".csv"; // Define the Path to our test file
+				path 	= NinjaTrader.Core.Globals.UserDataDir+Instrument.MasterInstrument.Name+" "+DateTime.Now.DayOfWeek+" "+DateTime.Now.Hour+DateTime.Now.Minute+ ".csv"; // Ruta al archivo exportado
 				
 				sw = File.AppendText(path);  // Open the path for writing
 				
@@ -131,7 +130,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 							myGrid.Children.Remove(longButton);
 							longButton.Click -= OnButtonClick;
 							longButton = null;
-							Print ("state.terminated, removed button?");
+							Print ("state.terminated, ocultar el botón?");
 						}
 					}
 				}));
@@ -143,7 +142,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 			}
 		}
-
 		protected override void OnBarUpdate()
 		{
 			if (doneWriting)  // when the done button is pressed, no need for OBU checks
@@ -151,13 +149,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			
 			if (State == State.Realtime && longButtonClicked && alsodoitonce)  // on the button click, on the first tick run the process.
 			{
-				Draw.VerticalLine(this, "writedata", 1, Brushes.SkyBlue);		// Draw vertical reference line on chart, previous bar is last historial
+				Draw.VerticalLine(this, "exportar", 1, Brushes.SkyBlue);		// Draw vertical reference line on chart, previous bar is last historial
 				ReadWrite();													// go get the data
 				alsodoitonce = false;											// only once
 				sw.Close();														// close the CSV file
 				// provide feedback on chart to remove the indicator
-				Draw.TextFixed(this, "datawritten1", "Historical chart and indicator data written from: "+start_Date+ " through "+end_Date
-					+"\n In file: "+path+"\nRemove indicator "+this.Name+" from chart to remove this message", TextPosition.BottomLeft);
+				Draw.TextFixed(this, "exportado1", "Histórico y datos de los indicadores exportados desde: "+start_Date+ " hasta "+end_Date
+					+"\n Exportado en archivo: "+path+"\nQuitar indicador "+this.Name+" del gráfico para quitar este mensaje", TextPosition.BottomLeft);
 			}
 		}
 		
@@ -165,7 +163,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			for (int n = 0; n < Bars.Count-1; n++) // process the historical data only
 			{
-
 				Data.Clear(); // clear list first
 				// add basics
 				Data.Add(Open.GetValueAt(n));
@@ -175,20 +172,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Data.Add(Volume.GetValueAt(n));
 			
 				lock (ChartControl.Indicators)
-
 				foreach (IndicatorBase indicator in ChartControl.Indicators)	// loop through indicators on chart		
   				{
 					if (indicator.State < State.Realtime)						// they all need to be in state realtime
 					{
-						Print (this.Name+"State error on Bar: "+n+"  indicator: "+indicator.Name+"  state: "+indicator.State);
+						Print (this.Name+"State error en vela: "+n+"  indicador: "+indicator.Name+"  state: "+indicator.State);
 						continue;
 					}
 				
-					if (indicator.Name != "ChartToCSV")  // don't need to read this indicator...
+					if (indicator.Name != "JoiaEXPORTADOR")  // don't need to read this indicator...
 					{	 	
 						for (int seriesCount = 0; seriesCount <  indicator.Values.Length ; seriesCount++)  // process each plot of the indicator
 						{
-							Plot	plot				= indicator.Plots[seriesCount];						// get a plot from the indictor
+							Plot	plot				= indicator.Plots[seriesCount];						// get a plot from the indicator
 							double val					= indicator.Values[seriesCount].GetValueAt(n);		// now get a specific bar value							
 							Data.Add(val);				// add indicators current plot value to list;
 										
@@ -199,7 +195,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 						} 
 					}
 				}	
-
 				init = false;  //grab labels just once
 					
 				// now write labels to file first (header row)
@@ -207,13 +202,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					int LC = Labels.Count-1;
 											
-					for (int h = 0; h < Labels.Count; h++)
+					for (int h = 0; h < Labels.Count; h++) // write labels to file
 					{
-						sw.Write(Labels[h]);
+						sw.Write(Labels[h]); 
 					}
 					sw.WriteLine();  // kick it to the next line
-					doitonce = false;
-					Dispatcher.InvokeAsync((() =>
+					doitonce = false; // only once
+					Dispatcher.InvokeAsync((() => // update the button
 					{
 						longButton.Background = Brushes.Gold;
 						longButton.Foreground = Brushes.Black;
@@ -223,43 +218,43 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 					
 				// write bar date and time first
-				sw.Write(Time.GetValueAt(n).Date.ToShortDateString()+";"+Time.GetValueAt(n).TimeOfDay+";");
+				sw.Write(Time.GetValueAt(n).Date.ToShortDateString()+";"+Time.GetValueAt(n).TimeOfDay+";"); // write the date and time
 				
-				if (n == 0)
+				if (n == 0) // save the start date for feedback
 					start_Date = Time.GetValueAt(n);		// save the start date for feedback
 				if (n == Bars.Count-2)
 					end_Date = Time.GetValueAt(n);			// save the end date for feedback
 				// write data after on same line
 				for (int j = 0; j < Data.Count; j++)
 				{
-					sw.Write(Data[j]+";");  				// write the data with a comma for comma delimitation
+					sw.Write(Data[j]+";");  				// write the data with a ; for delimitation
 				}
 				sw.WriteLine();								// kick it to the next line to write										
 				}
 			}
 		
-		private void OnButtonClick(object sender, RoutedEventArgs rea)
+		private void OnButtonClick(object sender, RoutedEventArgs rea) // button click event
 		{
-			System.Windows.Controls.Button button = sender as System.Windows.Controls.Button;
-			if (button == longButton && button.Name == "WriteData" && button.Content == "WriteData")
+			System.Windows.Controls.Button button = sender as System.Windows.Controls.Button; // get the button
+			if (button == longButton && button.Name == "Exportar" && button.Content == "Exportar") // if the button is the long button and the name is Exportar and the content is Exportar
 			{
-				button.Content = "Writing data";
-				button.Name = "DataWritten";
+				button.Content = "Exportando datos"; // change the button content
+				button.Name = "datosescritos"; // change the button name
 				longButtonClicked = true;
 				return;
 			}	
 			
-			if (button == longButton && button.Name == "DataWritten" && button.Content == "Done")
+			if (button == longButton && button.Name == "datosescritos" && button.Content == "Done") // if the button is the long button and the name is datosescritos and the content is Done
 			{
-				Dispatcher.InvokeAsync((() =>
+				Dispatcher.InvokeAsync((() =>		// update the button
 				{
-					if (myGrid != null)
+					if (myGrid != null) // if the grid is not null
 					{
-						if (longButton != null)
+						if (longButton != null) // if the button is not null
 						{
-							myGrid.Children.Remove(longButton);
-							longButton.Click -= OnButtonClick;
-							longButton = null;
+							myGrid.Children.Remove(longButton); // remove the button from the grid
+							longButton.Click -= OnButtonClick; // remove the click event
+							longButton = null; // set the button to null
 						}
 					}
 				}));
@@ -273,60 +268,52 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#endregion		
 	}
 }
-
 #region NinjaScript generated code. Neither change nor remove.
-
 namespace NinjaTrader.NinjaScript.Indicators
 {
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
-		private ChartToCSV[] cacheChartToCSV;
-		public ChartToCSV ChartToCSV()
+		private JoiaEXPORTADOR[] cacheJoiaEXPORTADOR;
+		public JoiaEXPORTADOR JoiaEXPORTADOR()
 		{
-			return ChartToCSV(Input);
+			return JoiaEXPORTADOR(Input);
 		}
-
-		public ChartToCSV ChartToCSV(ISeries<double> input)
+		public JoiaEXPORTADOR JoiaEXPORTADOR(ISeries<double> input)
 		{
-			if (cacheChartToCSV != null)
-				for (int idx = 0; idx < cacheChartToCSV.Length; idx++)
-					if (cacheChartToCSV[idx] != null &&  cacheChartToCSV[idx].EqualsInput(input))
-						return cacheChartToCSV[idx];
-			return CacheIndicator<ChartToCSV>(new ChartToCSV(), input, ref cacheChartToCSV);
+			if (cacheJoiaEXPORTADOR != null)
+				for (int idx = 0; idx < cacheJoiaEXPORTADOR.Length; idx++)
+					if (cacheJoiaEXPORTADOR[idx] != null &&  cacheJoiaEXPORTADOR[idx].EqualsInput(input))
+						return cacheJoiaEXPORTADOR[idx];
+			return CacheIndicator<JoiaEXPORTADOR>(new JoiaEXPORTADOR(), input, ref cacheJoiaEXPORTADOR);
 		}
 	}
 }
-
 namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.ChartToCSV ChartToCSV()
+		public Indicators.JoiaEXPORTADOR JoiaEXPORTADOR()
 		{
-			return indicator.ChartToCSV(Input);
+			return indicator.JoiaEXPORTADOR(Input);
 		}
-
-		public Indicators.ChartToCSV ChartToCSV(ISeries<double> input )
+		public Indicators.JoiaEXPORTADOR JoiaEXPORTADOR(ISeries<double> input )
 		{
-			return indicator.ChartToCSV(input);
+			return indicator.JoiaEXPORTADOR(input);
 		}
 	}
 }
-
 namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.ChartToCSV ChartToCSV()
+		public Indicators.JoiaEXPORTADOR JoiaEXPORTADOR()
 		{
-			return indicator.ChartToCSV(Input);
+			return indicator.JoiaEXPORTADOR(Input);
 		}
-
-		public Indicators.ChartToCSV ChartToCSV(ISeries<double> input )
+		public Indicators.JoiaEXPORTADOR JoiaEXPORTADOR(ISeries<double> input )
 		{
-			return indicator.ChartToCSV(input);
+			return indicator.JoiaEXPORTADOR(input);
 		}
 	}
 }
-
 #endregion

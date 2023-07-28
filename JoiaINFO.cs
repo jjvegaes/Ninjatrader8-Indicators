@@ -1,7 +1,3 @@
-//
-// Copyright (C) 2022, NinjaTrader LLC <www.ninjatrader.com>.
-// NinjaTrader reserves the right to modify or overwrite this NinjaScript component with each release.
-//
 #region Using declarations
 using System;
 using System.Collections.Generic;
@@ -13,27 +9,26 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Forms;
 using System.Xml.Serialization;
 using NinjaTrader.Cbi;
 using NinjaTrader.Gui;
 using NinjaTrader.Gui.Chart;
 using NinjaTrader.Gui.SuperDom;
+using NinjaTrader.Gui.Tools;
 using NinjaTrader.Data;
 using NinjaTrader.NinjaScript;
 using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.NinjaScript.DrawingTools;
-using SharpDX;
-using SharpDX.Direct2D1;
-using SharpDX.DirectWrite;
 #endregion
 
-//This namespace holds Indicators in this folder and is required. Do not change it.
+//This namespace holds Indicators in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Indicators
 {
-	[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable")]
-	public class BarTimerSpread : Indicator
+	public class JoiaINFO : Indicator
 	{
+        private string AccountName;
+		NinjaTrader.Gui.Tools.AccountSelector xAlselector;
+
 		private string			timeLeft	= string.Empty;
 		private DateTime		now		 	= Core.Globals.Now;
 		private bool			connected,
@@ -48,13 +43,22 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (State == State.SetDefaults)
 			{
-				Description 		= "Bar Timer displays the time remaining until the next bar";
-				Name 				= "BarTimerSpread";
-				Calculate			= Calculate.OnEachTick;
-				DrawOnPricePanel	= false;
-				IsChartOnly			= true;
-				IsOverlay			= true;
-				DisplayInDataBox	= false;
+				Description									= @"Muestra informacion del tiempo restante de la vela actual, del beneficio por tick, del spread y de la cuenta que estamos usando actualmente, que con el chart trader ocultado puede ser muy util.";
+				Name										= "JoiaINFO";
+				Calculate									= Calculate.OnEachTick;
+				IsOverlay									= true;
+				DisplayInDataBox							= false;
+				DrawOnPricePanel							= true;
+				DrawHorizontalGridLines						= true;
+				DrawVerticalGridLines						= true;
+				PaintPriceMarkers							= true;
+				ScaleJustification							= NinjaTrader.Gui.Chart.ScaleJustification.Right;
+				IsSuspendedWhileInactive					= true;
+				LetraSize									= 14;
+				LetraColor									= Brushes.White;
+				MostrarSpread								= true;
+				MostrarNombreCuentaActual					= true;
+				MostrarTR									= true;
 			}
 			else if (State == State.Realtime)
 			{
@@ -99,6 +103,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 				hasRealtimeData = true;
 				connected = true;
 			}
+
+			ChartControl.Dispatcher.InvokeAsync((Action)(() =>
+			{
+				//You have to put the stuff below within this ChartControl.Dispatcher.InvokeAsync((Action)(() =>, because you are trying to access something on a different thread.
+				xAlselector = Window.GetWindow(ChartControl.Parent).FindFirst("ChartTraderControlAccountSelector") as NinjaTrader.Gui.Tools.AccountSelector;
+				AccountName = xAlselector.SelectedAccount.ToString();
+                if (MostrarNombreCuentaActual) {
+                    Draw.TextFixed(this, "account", "Cuenta: " + AccountName + Environment.NewLine+ Environment.NewLine, TextPosition.BottomRight, LetraColor, new Gui.Tools.SimpleFont("Arial", LetraSize), Brushes.Transparent, Brushes.Transparent, 0);
+                }
+			}));
+
 		}
 
 		protected override void OnConnectionStatusUpdate(ConnectionStatusEventArgs connectionStatusUpdate)
@@ -148,13 +163,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 						{
 							TimeSpan barTimeLeft = Bars.GetTime(Bars.Count - 1).Subtract(Now);
                             double TValue = Instrument.MasterInstrument.PointValue * TickSize;
-                            double SpreadCost = (dblAsk - dblBid) / TickSize * TValue;
+                            double SpreadCost = (dblAsk - dblBid) / TickSize * TValue; // 
 							timeLeft = (barTimeLeft.Ticks < 0
 								? "00:00:00"
 								: barTimeLeft.Hours.ToString("00") + ":" + barTimeLeft.Minutes.ToString("00") + ":" + barTimeLeft.Seconds.ToString("00"));
-							Draw.TextFixed(this, "Spread", "Spread: " + (dblAsk - dblBid) + SpreadCost + "	Tick Value: "+ TValue.ToString()+"$" + Environment.NewLine, TextPosition.BottomLeft, ChartControl.Properties.ChartText, ChartControl.Properties.LabelFont, Brushes.Transparent, Brushes.Transparent, 0);
-                            Draw.TextFixed(this, "TimeRemaining","	Time Remaining:" + timeLeft + Environment.NewLine, TextPosition.BottomRight, ChartControl.Properties.ChartText, ChartControl.Properties.LabelFont, Brushes.Transparent, Brushes.Transparent, 0);
-                            Draw.TextFixed(this, "Time", "Time: " + DateTime.Now.ToString(), TextPosition.BottomRight, ChartControl.Properties.ChartText, ChartControl.Properties.LabelFont, Brushes.Transparent, Brushes.Transparent, 0);
+							if (MostrarSpread) {Draw.TextFixed(this, "Spread", "Spread: " +  SpreadCost + "$	Tick Value: "+ TValue.ToString()+"$" + Environment.NewLine, TextPosition.BottomLeft, LetraColor, new Gui.Tools.SimpleFont("Arial", LetraSize), Brushes.Transparent, Brushes.Transparent, 0);}
+                            if (MostrarTR){ 
+								Draw.TextFixed(this, "TimeRemaining","	Time Remaining:" + timeLeft + Environment.NewLine, TextPosition.BottomRight, LetraColor,  new Gui.Tools.SimpleFont("Arial", LetraSize), Brushes.Transparent, Brushes.Transparent, 0);
+                            	Draw.TextFixed(this, "Time", "Time: " + DateTime.Now.ToString(), TextPosition.BottomRight,  LetraColor,  new Gui.Tools.SimpleFont("Arial", LetraSize), Brushes.Transparent, Brushes.Transparent, 0);
+							}
 						}
 						else
 							Draw.TextFixed(this, "NinjaScriptInfo"," ", TextPosition.BottomRight, ChartControl.Properties.ChartText, ChartControl.Properties.LabelFont, Brushes.Transparent, Brushes.Transparent, 0);
@@ -207,6 +224,43 @@ namespace NinjaTrader.NinjaScript.Indicators
 				return now;
 			}
 		}
+
+		#region Properties
+		[NinjaScriptProperty]
+		[Range(1, int.MaxValue)]
+		[Display(Name="LetraSize", Description="Tamano de letra", Order=1, GroupName="Parameters")]
+		public int LetraSize
+		{ get; set; }
+
+		[NinjaScriptProperty]
+		[XmlIgnore]
+		[Display(Name="LetraColor", Description="Color de letra", Order=2, GroupName="Parameters")]
+		public Brush LetraColor
+		{ get; set; }
+
+		[Browsable(false)]
+		public string LetraColorSerializable
+		{
+			get { return Serialize.BrushToString(LetraColor); }
+			set { LetraColor = Serialize.StringToBrush(value); }
+		}			
+
+		[NinjaScriptProperty]
+		[Display(Name="MostrarSpread", Description="Mostrar spread y beneficio por tick", Order=3, GroupName="Parameters")]
+		public bool MostrarSpread
+		{ get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="MostrarNombreCuentaActual", Description="Muestra el nombre de cuenta con el que estamos operando", Order=4, GroupName="Parameters")]
+		public bool MostrarNombreCuentaActual
+		{ get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="MostrarTR", Description="Muestra tiempo restante de la vela actual y hora", Order=5, GroupName="Parameters")]
+		public bool MostrarTR
+		{ get; set; }
+		#endregion
+
 	}
 }
 
@@ -216,19 +270,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
-		private BarTimerSpread[] cacheBarTimerSpread;
-		public BarTimerSpread BarTimerSpread()
+		private JoiaINFO[] cacheJoiaINFO;
+		public JoiaINFO JoiaINFO(int letraSize, Brush letraColor, bool mostrarSpread, bool mostrarNombreCuentaActual, bool mostrarTR)
 		{
-			return BarTimerSpread(Input);
+			return JoiaINFO(Input, letraSize, letraColor, mostrarSpread, mostrarNombreCuentaActual, mostrarTR);
 		}
 
-		public BarTimerSpread BarTimerSpread(ISeries<double> input)
+		public JoiaINFO JoiaINFO(ISeries<double> input, int letraSize, Brush letraColor, bool mostrarSpread, bool mostrarNombreCuentaActual, bool mostrarTR)
 		{
-			if (cacheBarTimerSpread != null)
-				for (int idx = 0; idx < cacheBarTimerSpread.Length; idx++)
-					if (cacheBarTimerSpread[idx] != null &&  cacheBarTimerSpread[idx].EqualsInput(input))
-						return cacheBarTimerSpread[idx];
-			return CacheIndicator<BarTimerSpread>(new BarTimerSpread(), input, ref cacheBarTimerSpread);
+			if (cacheJoiaINFO != null)
+				for (int idx = 0; idx < cacheJoiaINFO.Length; idx++)
+					if (cacheJoiaINFO[idx] != null && cacheJoiaINFO[idx].LetraSize == letraSize && cacheJoiaINFO[idx].LetraColor == letraColor && cacheJoiaINFO[idx].MostrarSpread == mostrarSpread && cacheJoiaINFO[idx].MostrarNombreCuentaActual == mostrarNombreCuentaActual && cacheJoiaINFO[idx].MostrarTR == mostrarTR && cacheJoiaINFO[idx].EqualsInput(input))
+						return cacheJoiaINFO[idx];
+			return CacheIndicator<JoiaINFO>(new JoiaINFO(){ LetraSize = letraSize, LetraColor = letraColor, MostrarSpread = mostrarSpread, MostrarNombreCuentaActual = mostrarNombreCuentaActual, MostrarTR = mostrarTR }, input, ref cacheJoiaINFO);
 		}
 	}
 }
@@ -237,14 +291,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.BarTimerSpread BarTimerSpread()
+		public Indicators.JoiaINFO JoiaINFO(int letraSize, Brush letraColor, bool mostrarSpread, bool mostrarNombreCuentaActual, bool mostrarTR)
 		{
-			return indicator.BarTimerSpread(Input);
+			return indicator.JoiaINFO(Input, letraSize, letraColor, mostrarSpread, mostrarNombreCuentaActual, mostrarTR);
 		}
 
-		public Indicators.BarTimerSpread BarTimerSpread(ISeries<double> input )
+		public Indicators.JoiaINFO JoiaINFO(ISeries<double> input , int letraSize, Brush letraColor, bool mostrarSpread, bool mostrarNombreCuentaActual, bool mostrarTR)
 		{
-			return indicator.BarTimerSpread(input);
+			return indicator.JoiaINFO(input, letraSize, letraColor, mostrarSpread, mostrarNombreCuentaActual, mostrarTR);
 		}
 	}
 }
@@ -253,14 +307,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.BarTimerSpread BarTimerSpread()
+		public Indicators.JoiaINFO JoiaINFO(int letraSize, Brush letraColor, bool mostrarSpread, bool mostrarNombreCuentaActual, bool mostrarTR)
 		{
-			return indicator.BarTimerSpread(Input);
+			return indicator.JoiaINFO(Input, letraSize, letraColor, mostrarSpread, mostrarNombreCuentaActual, mostrarTR);
 		}
 
-		public Indicators.BarTimerSpread BarTimerSpread(ISeries<double> input )
+		public Indicators.JoiaINFO JoiaINFO(ISeries<double> input , int letraSize, Brush letraColor, bool mostrarSpread, bool mostrarNombreCuentaActual, bool mostrarTR)
 		{
-			return indicator.BarTimerSpread(input);
+			return indicator.JoiaINFO(input, letraSize, letraColor, mostrarSpread, mostrarNombreCuentaActual, mostrarTR);
 		}
 	}
 }
